@@ -27,8 +27,6 @@ const corsOptions = {
   allowedHeaders: ["Content-Type","Authorization"],
 };
 app.use(cors(corsOptions));
-// Nếu muốn, chỉ bật preflight cho /api/* (không dùng '*'):
-app.options("/api/*", cors(corsOptions));
 
 // --- middlewares ---
 app.use(express.json());
@@ -50,3 +48,4 @@ const PORT = process.env.PORT || 5000;
 mongoose.connect(process.env.MONGO_URI)
   .then(() => app.listen(PORT, "0.0.0.0", () => console.log("✅ Server on :", PORT)))
   .catch(err => { console.error("❌ DB connect error:", err.message); process.exit(1); });
+
