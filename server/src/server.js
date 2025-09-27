@@ -8,8 +8,21 @@ import habitRouter from "./routes/habit.routes.js";
 
 dotenv.config();
 
-const app = express();
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173", credentials: true }));
+const app = express();const allowedOrigins = [
+  process.env.CLIENT_URL,         // vercel
+  "http://localhost:5173"         // local dev
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
 app.use(morgan("dev"));
 
@@ -28,4 +41,5 @@ mongoose
   });
 
   app.use(notFound);
+
   app.use(errorHandler);
