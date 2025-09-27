@@ -1,144 +1,168 @@
-"use client";
+"use client"
 
-import { useEffect, useMemo, useState } from "react";
-import { api } from "../services/api";
+import { useEffect, useMemo, useState } from "react"
+import { api } from "../services/api"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 
 // --------- UI helper ---------
 const Pill = ({ children, className = "" }) => (
   <span className={`px-2 py-1 rounded-full text-xs font-medium ${className}`}>{children}</span>
-);
+)
 
 // Định dạng ngày
-const fmtDate = (d) => new Date(d).toLocaleDateString("vi-VN");
+const fmtDate = (d) => new Date(d).toLocaleDateString("vi-VN")
 
 export default function Home() {
   // ---------- CRUD + LIST ----------
-  const [form, setForm] = useState({ name: "", category: "", targetPerWeek: 3 });
-  const [data, setData] = useState({ items: [], page: 1, pages: 1 });
-  const [query, setQuery] = useState({ status: "all", category: "", page: 1, limit: 8 });
-  const [stats, setStats] = useState({ done: 0, notDone: 0 });
+  const [form, setForm] = useState({ name: "", category: "", targetPerWeek: 3 })
+  const [data, setData] = useState({ items: [], page: 1, pages: 1 })
+  const [query, setQuery] = useState({ status: "all", category: "", page: 1, limit: 8 })
+  const [stats, setStats] = useState({ done: 0, notDone: 0 })
 
   // ---------- CATEGORY (dropdown + thêm mới) ----------
-  const [categories, setCategories] = useState([]);        // danh sách có sẵn
-  const [showAddCat, setShowAddCat] = useState(false);     // mở input thêm danh mục
-  const [newCat, setNewCat] = useState("");
+  const [categories, setCategories] = useState([]) // danh sách có sẵn
+  const [showAddCat, setShowAddCat] = useState(false) // mở input thêm danh mục
+  const [newCat, setNewCat] = useState("")
 
   // ---------- STATS MODAL ----------
-  const [showStats, setShowStats] = useState(false);
-  const [viewMode, setViewMode] = useState("week"); // 'week' | 'month'
-  const [weeklyStats, setWeeklyStats] = useState(null);   // { series: [{date,count}], totalCompleted }
-  const [monthlyStats, setMonthlyStats] = useState(null); // { range:{start,end}, series:[{date,count}] }
-  const [loadingWeekly, setLoadingWeekly] = useState(false);
-  const [loadingMonthly, setLoadingMonthly] = useState(false);
+  const [showStats, setShowStats] = useState(false)
+  const [viewMode, setViewMode] = useState("week") // 'week' | 'month'
+  const [weeklyStats, setWeeklyStats] = useState(null) // { series: [{date,count}], totalCompleted }
+  const [monthlyStats, setMonthlyStats] = useState(null) // { range:{start,end}, series:[{date,count}] }
+  const [loadingWeekly, setLoadingWeekly] = useState(false)
+  const [loadingMonthly, setLoadingMonthly] = useState(false)
 
   // ---------- LIST ----------
   const fetchList = async () => {
-    const params = { page: query.page, limit: query.limit };
-    if (query.status !== "all") params.status = query.status;
-    if (query.category) params.category = query.category;
-    const res = await api.get("/habits", { params });
-    setData(res.data);
-  };
+    const params = { page: query.page, limit: query.limit }
+    if (query.status !== "all") params.status = query.status
+    if (query.category) params.category = query.category
+    const res = await api.get("/habits", { params })
+    setData(res.data)
+  }
 
   const fetchStats = async () => {
-    const res = await api.get("/habits/stats/summary");
-    setStats(res.data);
-  };
+    const res = await api.get("/habits/stats/summary")
+    setStats(res.data)
+  }
 
   // Lấy list + stats
-  useEffect(() => { fetchList(); /* eslint-disable-next-line */ }, [query]);
-  useEffect(() => { fetchStats(); /* eslint-disable-next-line */ }, [data]);
+  useEffect(() => {
+    fetchList() /* eslint-disable-next-line */
+  }, [query])
+  useEffect(() => {
+    fetchStats() /* eslint-disable-next-line */
+  }, [data])
 
   // Cập nhật dropdown categories dựa theo danh sách hiện có
   useEffect(() => {
-    const uniq = Array.from(
-      new Set((data.items || []).map(i => i.category).filter(Boolean))
-    ).sort((a, b) => a.localeCompare(b, "vi"));
-    setCategories(uniq);
-  }, [data.items]);
+    const uniq = Array.from(new Set((data.items || []).map((i) => i.category).filter(Boolean))).sort((a, b) =>
+      a.localeCompare(b, "vi"),
+    )
+    setCategories(uniq)
+  }, [data.items])
 
   // ---------- Thêm danh mục mới ----------
   const addCategory = (e) => {
-    e.preventDefault();
-    const cat = newCat.trim();
-    if (!cat) return;
+    e.preventDefault()
+    const cat = newCat.trim()
+    if (!cat) return
     if (!categories.includes(cat)) {
-      setCategories(prev => [...prev, cat].sort((a,b)=>a.localeCompare(b,"vi")));
+      setCategories((prev) => [...prev, cat].sort((a, b) => a.localeCompare(b, "vi")))
     }
-    setForm(f => ({ ...f, category: cat }));  // set luôn vào form
-    setNewCat("");
-    setShowAddCat(false);
-  };
+    setForm((f) => ({ ...f, category: cat })) // set luôn vào form
+    setNewCat("")
+    setShowAddCat(false)
+  }
 
   // ---------- FETCH detail stats ----------
   const fetchWeeklyStats = async () => {
     try {
-      setLoadingWeekly(true);
-      const res = await api.get("/habits/stats/weekly");
-      setWeeklyStats(res.data);
+      setLoadingWeekly(true)
+      const res = await api.get("/habits/stats/weekly")
+      setWeeklyStats(res.data)
     } finally {
-      setLoadingWeekly(false);
+      setLoadingWeekly(false)
     }
-  };
+  }
 
   const fetchMonthlyStats = async () => {
     try {
-      setLoadingMonthly(true);
-      const res = await api.get("/habits/stats/monthly");
-      setMonthlyStats(res.data);
+      setLoadingMonthly(true)
+      const res = await api.get("/habits/stats/monthly")
+      setMonthlyStats(res.data)
     } finally {
-      setLoadingMonthly(false);
+      setLoadingMonthly(false)
     }
-  };
+  }
 
   // Mở modal: preload CẢ 2 để đổi tab mượt
   const openStatsModal = async () => {
-    setShowStats(true);
-    fetchWeeklyStats();
-    fetchMonthlyStats();
-  };
+    setShowStats(true)
+    fetchWeeklyStats()
+    fetchMonthlyStats()
+  }
 
   // Khi đổi tab, nếu tab chưa có dữ liệu thì tải bổ sung
   const onSwitchWeek = () => {
-    setViewMode("week");
-    if (!weeklyStats) fetchWeeklyStats();
-  };
+    setViewMode("week")
+    if (!weeklyStats) fetchWeeklyStats()
+  }
   const onSwitchMonth = () => {
-    setViewMode("month");
-    if (!monthlyStats) fetchMonthlyStats();
-  };
+    setViewMode("month")
+    if (!monthlyStats) fetchMonthlyStats()
+  }
 
   // ---------- CRUD ----------
   const onCreate = async (e) => {
-    e.preventDefault();
-    if (!form.name.trim()) return;
-    await api.post("/habits", form);
-    setForm({ name: "", category: form.category || "", targetPerWeek: 3 });
-    setQuery({ ...query, page: 1 }); // reload list
-  };
+    e.preventDefault()
+    if (!form.name.trim()) return
+    await api.post("/habits", form)
+    setForm({ name: "", category: form.category || "", targetPerWeek: 3 })
+    setQuery({ ...query, page: 1 }) // reload list
+  }
 
   const onToggle = async (id) => {
-    await api.post(`/habits/${id}/toggle`);
-    fetchList();
-  };
+    await api.post(`/habits/${id}/toggle`)
+    fetchList()
+  }
 
   const onDelete = async (id) => {
-    await api.delete(`/habits/${id}`);
-    fetchList();
-  };
+    await api.delete(`/habits/${id}`)
+    fetchList()
+  }
 
   // ---------- Safe % helpers ----------
-  const totalHabits = (stats?.done ?? 0) + (stats?.notDone ?? 0);
-  const weeklyCompleted = weeklyStats?.totalCompleted ?? 0;
-  const weeklyRate = totalHabits ? ((weeklyCompleted / totalHabits) * 100).toFixed(1) : "0.0";
-  const monthlyCompleted = monthlyStats?.series?.reduce((s, i) => s + i.count, 0) ?? 0;
-  const monthlyRate = totalHabits ? ((monthlyCompleted / totalHabits) * 100).toFixed(1) : "0.0";
+  const totalHabits = (stats?.done ?? 0) + (stats?.notDone ?? 0)
+  const weeklyCompleted = weeklyStats?.totalCompleted ?? 0
+  const weeklyRate = totalHabits ? ((weeklyCompleted / totalHabits) * 100).toFixed(1) : "0.0"
+  const monthlyCompleted = monthlyStats?.series?.reduce((s, i) => s + i.count, 0) ?? 0
+  const monthlyRate = totalHabits ? ((monthlyCompleted / totalHabits) * 100).toFixed(1) : "0.0"
+
+  const weeklyChartData = useMemo(() => {
+    if (!weeklyStats?.series) return []
+    const dayNames = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]
+    return weeklyStats.series.map((d) => ({
+      day: dayNames[new Date(d.date).getDay()],
+      date: fmtDate(d.date),
+      count: d.count,
+      fullDate: d.date,
+    }))
+  }, [weeklyStats])
+
+  const monthlyChartData = useMemo(() => {
+    if (!monthlyStats?.series) return []
+    return monthlyStats.series.map((d) => ({
+      date: fmtDate(d.date),
+      count: d.count,
+      fullDate: d.date,
+    }))
+  }, [monthlyStats])
 
   // ---------- UI ----------
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      {/* container rộng hơn cho cảm giác “full” */}
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3">
@@ -155,7 +179,7 @@ export default function Home() {
           <form onSubmit={onCreate} className="grid grid-cols-1 md:grid-cols-12 gap-3">
             <input
               className="md:col-span-6 px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-black"
-              placeholder="Tên thói quen (vd: Đọc sách 30’, Thiền...)"
+              placeholder="Tên thói quen (vd: Đọc sách 30', Thiền...)"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
@@ -169,7 +193,9 @@ export default function Home() {
               >
                 <option value="">— Chọn danh mục —</option>
                 {categories.map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
                 ))}
               </select>
 
@@ -177,7 +203,7 @@ export default function Home() {
               {!showAddCat ? (
                 <button
                   type="button"
-                  className="text-white text-indigo-700 hover:underline self-start"
+                  className="text-white hover:underline self-start"
                   onClick={() => setShowAddCat(true)}
                 >
                   ➕ Thêm danh mục mới
@@ -198,7 +224,10 @@ export default function Home() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setShowAddCat(false); setNewCat(""); }}
+                    onClick={() => {
+                      setShowAddCat(false)
+                      setNewCat("")
+                    }}
                     className="px-3 py-2 rounded-xl border border-slate-300"
                   >
                     Huỷ
@@ -253,7 +282,9 @@ export default function Home() {
               >
                 <option value="">Tất cả danh mục</option>
                 {categories.map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
                 ))}
               </select>
             </div>
@@ -328,8 +359,7 @@ export default function Home() {
         {/* --------- MODAL: Stats --------- */}
         {showStats && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            {/* modal full-screen hơn, max-w lớn */}
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl w-full h-full max-w-none max-h-none overflow-y-auto md:w-[95vw] md:h-[95vh] md:max-w-6xl md:max-h-[95vh]">
               <div className="p-6">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-2xl font-bold text-slate-800">📊 Thống kê chi tiết</h2>
@@ -360,13 +390,13 @@ export default function Home() {
 
                 {/* WEEK */}
                 {viewMode === "week" && (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <h3 className="text-lg font-semibold text-slate-800">📅 Thống kê tuần này</h3>
                     {loadingWeekly ? (
                       <div className="text-center py-6 text-slate-500">Đang tải…</div>
                     ) : weeklyStats ? (
                       <>
-                        {/* Tóm tắt + “ô tròn” theo ngày */}
+                        {/* Tóm tắt + "ô tròn" theo ngày */}
                         <div className="bg-indigo-50 rounded-xl p-4">
                           <div className="text-center mb-3">
                             <div className="text-3xl font-bold text-indigo-700">{weeklyCompleted}</div>
@@ -376,8 +406,8 @@ export default function Home() {
                           </div>
                           <div className="grid grid-cols-7 gap-2">
                             {weeklyStats.series.map((d) => {
-                              const dayNames = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
-                              const dayIdx = new Date(d.date).getDay();
+                              const dayNames = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]
+                              const dayIdx = new Date(d.date).getDay()
                               return (
                                 <div key={d.date} className="text-center">
                                   <div className="text-xs text-slate-600 mb-1">{dayNames[dayIdx]}</div>
@@ -389,8 +419,37 @@ export default function Home() {
                                     {d.count}
                                   </div>
                                 </div>
-                              );
+                              )
                             })}
+                          </div>
+                        </div>
+
+                        <div className="bg-white rounded-xl border border-slate-200 p-6">
+                          <h4 className="font-medium mb-4 text-lg">Biểu đồ cột - Thống kê tuần</h4>
+                          <div className="h-80">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={weeklyChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                <XAxis dataKey="day" stroke="#64748b" fontSize={12} />
+                                <YAxis stroke="#64748b" fontSize={12} />
+                                <Tooltip
+                                  contentStyle={{
+                                    backgroundColor: "#f8fafc",
+                                    border: "1px solid #e2e8f0",
+                                    borderRadius: "8px",
+                                    fontSize: "14px",
+                                  }}
+                                  formatter={(value, name) => [value, "Số lần hoàn thành"]}
+                                  labelFormatter={(label, payload) => {
+                                    if (payload && payload[0]) {
+                                      return `${label} (${payload[0].payload.date})`
+                                    }
+                                    return label
+                                  }}
+                                />
+                                <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} name="Hoàn thành" />
+                              </BarChart>
+                            </ResponsiveContainer>
                           </div>
                         </div>
 
@@ -425,7 +484,7 @@ export default function Home() {
 
                 {/* MONTH */}
                 {viewMode === "month" && (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <h3 className="text-lg font-semibold text-slate-800">📈 Thống kê tháng này</h3>
                     {loadingMonthly ? (
                       <div className="text-center py-6 text-slate-500">Đang tải…</div>
@@ -443,6 +502,37 @@ export default function Home() {
                                 {fmtDate(monthlyStats.range.start)} — {fmtDate(monthlyStats.range.end)}
                               </div>
                             )}
+                          </div>
+                        </div>
+
+                        <div className="bg-white rounded-xl border border-slate-200 p-6">
+                          <h4 className="font-medium mb-4 text-lg">Biểu đồ cột - Thống kê tháng</h4>
+                          <div className="h-80">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={monthlyChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                <XAxis
+                                  dataKey="date"
+                                  stroke="#64748b"
+                                  fontSize={12}
+                                  angle={-45}
+                                  textAnchor="end"
+                                  height={80}
+                                />
+                                <YAxis stroke="#64748b" fontSize={12} />
+                                <Tooltip
+                                  contentStyle={{
+                                    backgroundColor: "#f8fafc",
+                                    border: "1px solid #e2e8f0",
+                                    borderRadius: "8px",
+                                    fontSize: "14px",
+                                  }}
+                                  formatter={(value, name) => [value, "Số lần hoàn thành"]}
+                                  labelFormatter={(label) => `Ngày ${label}`}
+                                />
+                                <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} name="Hoàn thành" />
+                              </BarChart>
+                            </ResponsiveContainer>
                           </div>
                         </div>
 
@@ -480,5 +570,5 @@ export default function Home() {
         )}
       </div>
     </div>
-  );
+  )
 }
