@@ -10,64 +10,43 @@ dotenv.config();
 
 const app = express();
 
-/** ---------- CORS ---------- */
-// Cho phép nhập nhiều domain qua ENV, phân tách bằng dấu phẩy
-const fromEnv = (process.env.CLIENT_URL || "")
-  .split(",")
-  .map(s => s.trim())
-  .filter(Boolean);
-
-// Danh sách “allow list” cố định
+// --- CORS ---
 const allowList = new Set([
   "http://localhost:5173",
-  ...fromEnv,
+  ...(process.env.CLIENT_URL || "").split(",").map(s => s.trim()).filter(Boolean),
 ]);
-
-// Cho phép tất cả các subdomain *.vercel.app (preview build)
 const isAllowed = (origin) => {
-  if (!origin) return true; // Postman/Thunder Client
+  if (!origin) return true;
   if (allowList.has(origin)) return true;
-  try {
-    const { hostname } = new URL(origin);
-    if (hostname.endsWith(".vercel.app")) return true;
-  } catch {}
-  return false;
+  try { return new URL(origin).hostname.endsWith(".vercel.app"); } catch { return false; }
 };
-
 const corsOptions = {
   origin: (origin, cb) => (isAllowed(origin) ? cb(null, true) : cb(new Error("Not allowed by CORS"))),
   credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"],
 };
-
 app.use(cors(corsOptions));
-// preflight cho mọi route
-app.options("*", cors(corsOptions));
+// Nếu muốn, chỉ bật preflight cho /api/* (không dùng '*'):
+app.options("/api/*", cors(corsOptions));
 
-/** ---------- Middlewares ---------- */
+// --- middlewares ---
 app.use(express.json());
 app.use(morgan("dev"));
 
-/** ---------- Healthcheck ---------- */
-app.get("/", (_req, res) => res.send("Backend is running"));
+// --- health ---
+app.get("/", (_req, res) => res.send("Backend running"));
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
-/** ---------- Routes ---------- */
+// --- routes ---
 app.use("/api/habits", habitRouter);
 
-/** ---------- Errors ---------- */
+// --- errors ---
 app.use(notFound);
 app.use(errorHandler);
 
-/** ---------- Start server ---------- */
+// --- start ---
 const PORT = process.env.PORT || 5000;
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
-    app.listen(PORT, "0.0.0.0", () => console.log("✅ Server on :" + PORT));
-  })
-  .catch((err) => {
-    console.error("❌ DB connect error:", err.message);
-    process.exit(1);
-  });
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => app.listen(PORT, "0.0.0.0", () => console.log("✅ Server on :", PORT)))
+  .catch(err => { console.error("❌ DB connect error:", err.message); process.exit(1); });
